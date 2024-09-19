@@ -29,6 +29,10 @@ int x = 0;
 //Tipo de Grafica
 float Pend1 = 0;
 float Pend2 = 0;
+int eTime2 = 0;
+int sTime2 = 0;
+int PeriodoPend1 = 0;
+int PeriodoPend2 = 0;
 
 void setup() 
 {
@@ -57,46 +61,51 @@ void loop()
         estado1 = digitalRead(StartPin);  
         estado2 = digitalRead(StopPin);   
         
-        val = analogRead(analogPin);
-        //Serial.println(val); 
+        prevVal = analogRead(analogPin);
+        //val = analogRead(analogPin);
+        sTime2 = micros();
+        Serial.println(prevVal); 
         
         x++;
         if (x > 10)
         {
           
-            if (val > VaCresta)
-            {VaCresta = val;}
+            if (prevVal > VaCresta)
+            {VaCresta = prevVal;}
           
           
-            if (val < VaValle)
-            {VaValle = val;}
+            if (prevVal < VaValle)
+            {VaValle = prevVal;}
             
          
-            if (val > prevVal && !Cresta ) //
+            if (prevVal > val && !Cresta) //&& !Cresta 
             {Cresta = 1;}
           
             if (Pend1 != 0 and Pend2 == 0)
              {
-              Pend2 = val-prevVal;
+             val = analogRead(analogPin);
+             Pend2 = val-prevVal;
+             eTime2 = micros();
+             PeriodoPend2 = eTime2- sTime2;
+              
              }
              
-            if (val < prevVal && Cresta) //&& Cresta
+          
+          
+            if (prevVal < val && Cresta) //&& Cresta
             {
               Cresta = 0;  // Marcamos que la cresta ha terminado
         	 
-              
-                    Serial.println(val);
-                    Serial.println(prevVal);
-                    Serial.println();
-
-                //Si ya hay una primera pendiente asignamos la segunda (Solo una vez)
-              
               
               if (startTime == 0) 
                {startTime = millis(); 
                // Si es la primera cresta detectada, guardamos el tiempo y 
                //Ponemos la primera pendiente
+               val = analogRead(analogPin);
                Pend1 = val-prevVal;
+               eTime2 = micros();
+       		   PeriodoPend1 = eTime2- sTime2;
+
                }
                
               else 
@@ -107,8 +116,10 @@ void loop()
                 startTime = endTime;  // Actualizamos el tiempo inicial
               
                 // Convertimos el periodo a segundos y calculamos la frecuencia
-               frequency = 1000.0 / period; //F=1/P -> 1Seg= 1000Milis
-               
+                frequency = 1000.0 / period; //F=1/P -> 1Seg= 1000Milis
+
+                
+                
                }
                
                 
@@ -117,18 +128,18 @@ void loop()
         
         
 
-      prevVal = val;
+      //prevVal = val;
+      //sTime2 = eTime2;
     }
   
 
   } 
   
-  if (val != 0)
+  
+  if (prevVal != 0 )
   {
     VaCresta -= ((VaCresta+VaValle)/2);
     float Amplitud = VaCresta/100;
-    	
-          
     	
     	
       Serial.println();
@@ -147,20 +158,42 @@ void loop()
       lcd_1.print("Amplitud:");
 	  lcd_1.print(Amplitud);
       lcd_1.print(" V ");
-    
-    Serial.println();
-      Serial.println();
+
       Serial.println();
 
-    Serial.println(Pend1);
-      Serial.println(Pend2);
-        Serial.println();
-    Serial.println();
-    Serial.println();
+      Pend1 = Pend1*1000000/PeriodoPend1;
+      Pend2 = Pend2*1000000/PeriodoPend2;
+    
+    /* Por medio de esto analizaba cada valor de variable
+	  Serial.println(Pend1);
+      Serial.println(Pend2); 
+      Serial.println(PeriodoPend1);
+      Serial.println(PeriodoPend2);
+      Serial.println(); */
+    
+    if (Pend1 == Pend2 or Pend1 == (Pend2*-1))
+      {
+       Serial.println("La onda es Cuadrada");
+      }
+    
+	else if ((abs(Pend2)-abs(Pend1)) > 6)
+      {
+       Serial.println("La onda es Senoidal");
+      }
+    
+    else if ((abs(Pend2)-abs(Pend1)) < 6)
+      {
+       Serial.println("La onda es Triangular");
+      }
+    
+    else 
+      {
+      Serial.println("Ha ocurrido un error, intentelo de nuevo, por favor.");
+      }
 
     
     
-      val =0;
+      prevVal =0;
   }
   
 }
